@@ -10,27 +10,40 @@ interface MakePdfProps {
 
 const MakePdf: React.FC<MakePdfProps> = ({ resumeRef, children }) => {
     const handleDownload = async () => {
-        if (!resumeRef.current) return;
+        const resumeContent = resumeRef.current?.querySelector('.resume-content');
+        if (!resumeContent) return;
 
         try {
-            const DPI = 300; // High-quality DPI
+            const DPI = 300;
             const A4_WIDTH_MM = 210;
             const A4_HEIGHT_MM = 297;
             const MARGIN_MM = 10;
             const A4_WIDTH_PX = Math.floor((A4_WIDTH_MM * DPI) / 25.4);
-            const A4_HEIGHT_PX = Math.floor((A4_HEIGHT_MM * DPI) / 25.4);
             const MARGIN_PX = Math.floor((MARGIN_MM * DPI) / 25.4);
             const CONTENT_WIDTH_PX = A4_WIDTH_PX - (2 * MARGIN_PX);
 
-            const contentWidth = resumeRef.current.offsetWidth;
+            const contentWidth = resumeContent.clientWidth;
             const scale = (CONTENT_WIDTH_PX / contentWidth) * (window.devicePixelRatio || 1);
 
-            const canvas = await html2canvas(resumeRef.current, {
+            const canvas = await html2canvas(resumeContent as HTMLElement, {
                 scale,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff',
-                removeContainer: true
+                removeContainer: true,
+                onclone: (document) => {
+                    // Improve font rendering
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        * {
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
+                            font-smooth: always;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
             });
 
             const pdf = new jsPDF({
@@ -47,7 +60,7 @@ const MakePdf: React.FC<MakePdfProps> = ({ resumeRef, children }) => {
             let y = MARGIN_MM;
             pdf.addImage(imgData, 'JPEG', MARGIN_MM, y, imgWidth, imgHeight);
 
-            let contentHeightMM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+            const contentHeightMM = A4_HEIGHT_MM - (2 * MARGIN_MM);
             while (y + imgHeight > A4_HEIGHT_MM - MARGIN_MM) {
                 y -= contentHeightMM;
                 pdf.addPage();
