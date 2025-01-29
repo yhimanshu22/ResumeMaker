@@ -1,64 +1,57 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { Button } from "@/components/ui/button";
 
 interface MakePdfProps {
     resumeRef: React.RefObject<HTMLDivElement>;
+    children?: (onDownload: () => void) => React.ReactNode;
 }
 
-const MakePdf: React.FC<MakePdfProps> = ({ resumeRef }) => {
-    const downloadPDF = async () => {
-        const resumeContent = resumeRef.current;
-        if (!resumeContent) return;
+const MakePdf: React.FC<MakePdfProps> = ({ resumeRef, children }) => {
+    const handleDownload = async () => {
+        if (!resumeRef.current) return;
 
         try {
-            const canvas = await html2canvas(resumeContent, {
-                scale: 2,
-                useCORS: true,
-                logging: true,
-                backgroundColor: '#ffffff'
-            });
+            const DPI = 300; // High-quality DPI
+            const A4_WIDTH_MM = 210;
+            const A4_HEIGHT_MM = 297;
+            const MARGIN_MM = 10;
+            const A4_WIDTH_PX = Math.floor((A4_WIDTH_MM * DPI) / 25.4);
+            const A4_HEIGHT_PX = Math.floor((A4_HEIGHT_MM * DPI) / 25.4);
+            const MARGIN_PX = Math.floor((MARGIN_MM * DPI) / 25.4);
+            const CONTENT_WIDTH_PX = A4_WIDTH_PX - (2 * MARGIN_PX);
 
-            const contentWidth = 210; // A4 width in mm
-            const contentHeight = (canvas.height * contentWidth) / canvas.width;
+            const contentWidth = resumeRef.current.offsetWidth;
+            const scale = (CONTENT_WIDTH_PX / contentWidth) * (window.devicePixelRatio || 1);
+
+            const canvas = await html2canvas(resumeRef.current, {
+                scale,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                removeContainer: true
+            });
 
             const pdf = new jsPDF({
-                orientation: 'portrait',
+                format: 'a4',
                 unit: 'mm',
-                format: 'a4'
+                orientation: 'portrait',
+                compress: true
             });
 
-            // Convert canvas to base64 image
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const imgWidth = A4_WIDTH_MM - (2 * MARGIN_MM);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            // Add image to PDF
-            pdf.addImage({
-                imageData: imgData,
-                format: 'JPEG',
-                x: 0,
-                y: 0,
-                width: contentWidth,
-                height: contentHeight
-            });
+            let y = MARGIN_MM;
+            pdf.addImage(imgData, 'JPEG', MARGIN_MM, y, imgWidth, imgHeight);
 
-            // If content is longer than one page, add more pages
-            const pageHeight = 297; // A4 height
-            let remainingHeight = contentHeight;
-            let position = 0;
-
-            while (remainingHeight > pageHeight) {
-                position -= pageHeight;
-                remainingHeight -= pageHeight;
+            let contentHeightMM = A4_HEIGHT_MM - (2 * MARGIN_MM);
+            while (y + imgHeight > A4_HEIGHT_MM - MARGIN_MM) {
+                y -= contentHeightMM;
                 pdf.addPage();
-                pdf.addImage({
-                    imageData: imgData,
-                    format: 'JPEG',
-                    x: 0,
-                    y: position,
-                    width: contentWidth,
-                    height: contentHeight
-                });
+                pdf.addImage(imgData, 'JPEG', MARGIN_MM, y, imgWidth, imgHeight);
             }
 
             pdf.save('github-resume.pdf');
@@ -67,8 +60,12 @@ const MakePdf: React.FC<MakePdfProps> = ({ resumeRef }) => {
         }
     };
 
+    if (children) {
+        return <>{children(handleDownload)}</>;
+    }
+
     return (
-        <Button onClick={downloadPDF} className="mt-4 bg-blue-500">
+        <Button onClick={handleDownload} className="bg-red-600 hover:bg-red-700 text-white">
             Download PDF
         </Button>
     );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -8,6 +8,17 @@ import {
     CategoryScale,
     LinearScale
 } from 'chart.js';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+} from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import Link from 'next/link';
+import { fetchGitHubUserData } from '@/utils/github';
 
 // Register ChartJS components
 ChartJS.register(
@@ -18,59 +29,83 @@ ChartJS.register(
     LinearScale
 );
 
-interface DashboardProps {
-    githubStats?: {
-        languages: { [key: string]: number };
-        repoTypes: { [key: string]: number };
-        contributions: { [key: string]: number };
-    };
-}
+const Dashboard: React.FC = () => {
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [username, setUsername] = useState('');
 
-const Dashboard: React.FC<DashboardProps> = ({ githubStats }) => {
-    // Sample data (replace with actual GitHub data)
-    const languageData = {
-        labels: ['JavaScript', 'TypeScript', 'Python', 'Java', 'Other'],
-        datasets: [{
-            data: [30, 25, 20, 15, 10],
-            backgroundColor: [
-                '#f7df1e',  // JavaScript yellow
-                '#3178c6',  // TypeScript blue
-                '#3776ab',  // Python blue
-                '#b07219',  // Java brown
-                '#gray',    // Other
-            ],
-            borderColor: '#ffffff',
-            borderWidth: 2,
-        }],
+    const processLanguages = (projects: any[], skills: string[]) => {
+        const langs: { [key: string]: number } = {};
+        skills.forEach(skill => {
+            langs[skill] = projects.filter(p =>
+                p.description?.toLowerCase().includes(skill.toLowerCase())
+            ).length || 1;
+        });
+        return langs;
     };
 
-    const repoTypeData = {
-        labels: ['Personal', 'Forked', 'Contributed'],
-        datasets: [{
-            data: [60, 25, 15],
-            backgroundColor: [
-                '#2ecc71',  // Green
-                '#3498db',  // Blue
-                '#9b59b6',  // Purple
-            ],
-            borderColor: '#ffffff',
-            borderWidth: 2,
-        }],
+    const processRepoTypes = (projects: any[]) => {
+        return {
+            personal: projects.filter(p => !p.type.includes('Forked')).length,
+            forked: projects.filter(p => p.type.includes('Forked')).length,
+            contributed: projects.filter(p => p.type.includes('Contributed')).length
+        };
     };
 
-    const contributionData = {
-        labels: ['Commits', 'PRs', 'Issues', 'Code Review'],
-        datasets: [{
-            data: [45, 25, 20, 10],
-            backgroundColor: [
-                '#e74c3c',  // Red
-                '#f1c40f',  // Yellow
-                '#1abc9c',  // Turquoise
-                '#34495e',  // Dark Blue
-            ],
-            borderColor: '#ffffff',
-            borderWidth: 2,
-        }],
+    const fetchStats = async () => {
+        if (!username) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchGitHubUserData(username);
+            const processedStats = {
+                languages: processLanguages(data.projects, data.skills),
+                repoTypes: processRepoTypes(data.projects),
+                totalRepos: data.projects.length,
+                followers: parseInt(data.achievements[1].split(': ')[1]),
+                created: data.achievements[0].split('on ')[1]
+            };
+            setStats(processedStats);
+        } catch (err) {
+            setError('Failed to fetch GitHub statistics');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getChartData = () => {
+        if (!stats) return null;
+
+        const languageData = {
+            labels: Object.keys(stats.languages),
+            datasets: [{
+                data: Object.values(stats.languages),
+                backgroundColor: [
+                    '#f7df1e', '#3178c6', '#3776ab', '#b07219', '#e34c26',
+                    '#563d7c', '#2b7489', '#f1e05a', '#41b883', '#gray'
+                ],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+            }],
+        };
+
+        const repoTypeData = {
+            labels: ['Personal', 'Forked', 'Contributed'],
+            datasets: [{
+                data: [
+                    stats.repoTypes.personal,
+                    stats.repoTypes.forked,
+                    stats.repoTypes.contributed
+                ],
+                backgroundColor: ['#2ecc71', '#3498db', '#9b59b6'],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+            }],
+        };
+
+        return { languageData, repoTypeData };
     };
 
     const chartOptions = {
@@ -78,11 +113,9 @@ const Dashboard: React.FC<DashboardProps> = ({ githubStats }) => {
             legend: {
                 position: 'bottom' as const,
                 labels: {
-                    font: {
-                        size: 14,
-                        family: "'Inter', sans-serif",
-                    },
+                    font: { size: 14, family: "'Inter', sans-serif" },
                     padding: 20,
+                    color: '#e5e7eb',
                 },
             },
         },
@@ -91,68 +124,119 @@ const Dashboard: React.FC<DashboardProps> = ({ githubStats }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">
-                    GitHub Activity Dashboard
-                </h1>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {/* Languages Chart */}
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                            Programming Languages
-                        </h2>
-                        <div className="aspect-square">
-                            <Pie data={languageData} options={chartOptions} />
-                        </div>
-                    </div>
-
-                    {/* Repository Types Chart */}
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                            Repository Types
-                        </h2>
-                        <div className="aspect-square">
-                            <Pie data={repoTypeData} options={chartOptions} />
-                        </div>
-                    </div>
-
-                    {/* Contributions Chart */}
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                            Contribution Breakdown
-                        </h2>
-                        <div className="aspect-square">
-                            <Pie data={contributionData} options={chartOptions} />
-                        </div>
-                    </div>
-
-                    {/* Additional Stats */}
-                    <div className="bg-white p-6 rounded-lg shadow-lg md:col-span-2 lg:col-span-3">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                            Quick Statistics
-                        </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <p className="text-2xl font-bold text-blue-600">152</p>
-                                <p className="text-gray-600">Total Repositories</p>
-                            </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <p className="text-2xl font-bold text-green-600">1.2k</p>
-                                <p className="text-gray-600">Total Commits</p>
-                            </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <p className="text-2xl font-bold text-purple-600">89</p>
-                                <p className="text-gray-600">Pull Requests</p>
-                            </div>
-                            <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                <p className="text-2xl font-bold text-yellow-600">234</p>
-                                <p className="text-gray-600">Issues Created</p>
-                            </div>
-                        </div>
-                    </div>
+                <div className="flex justify-between items-center mb-8 px-4 py-8">
+                    <h1 className="text-4xl font-bold text-white">
+                        GitHub Activity Dashboard
+                    </h1>
+                    <Link href="/">
+                        <Button variant="outline" className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700">
+                            Back to Resume
+                        </Button>
+                    </Link>
                 </div>
+
+                <Card className="mb-8 mx-4 bg-gray-800/50 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-white">Search GitHub User</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-4">
+                            <Input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Enter GitHub username"
+                                className="flex-1 bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
+                            />
+                            <Button
+                                onClick={fetchStats}
+                                disabled={loading || !username}
+                                className="bg-gray-700 text-white hover:bg-gray-600"
+                            >
+                                {loading ? 'Loading...' : 'Fetch Stats'}
+                            </Button>
+                        </div>
+                        {error && (
+                            <Alert variant="destructive" className="mt-4 bg-red-900/50 border-red-800">
+                                <ExclamationTriangleIcon className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {stats && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                        <Card className="bg-gray-800/50 border-gray-700">
+                            <CardHeader>
+                                <CardTitle className="text-white">Skills Distribution</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="aspect-square">
+                                    <Pie data={getChartData()?.languageData} options={chartOptions} />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gray-800/50 border-gray-700">
+                            <CardHeader>
+                                <CardTitle className="text-white">Repository Types</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="aspect-square">
+                                    <Pie data={getChartData()?.repoTypeData} options={chartOptions} />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gray-800/50 border-gray-700">
+                            <CardHeader>
+                                <CardTitle className="text-white">Quick Statistics</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4">
+                                <Card className="bg-gray-900/50 border-gray-700">
+                                    <CardContent className="pt-6">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-blue-400">
+                                                {stats.totalRepos}
+                                            </div>
+                                            <p className="text-sm text-gray-400">
+                                                Total Repositories
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gray-900/50 border-gray-700">
+                                    <CardContent className="pt-6">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-green-400">
+                                                {stats.followers}
+                                            </div>
+                                            <p className="text-sm text-gray-400">
+                                                Followers
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-gray-900/50 border-gray-700">
+                                    <CardContent className="pt-6">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-purple-400">
+                                                {Object.keys(stats.languages).length}
+                                            </div>
+                                            <p className="text-sm text-gray-400">
+                                                Skills
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </div>
         </div>
     );

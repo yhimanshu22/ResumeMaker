@@ -1,21 +1,37 @@
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { Github, Download, PenLine, BarChart2 } from 'lucide-react';
 import ResumePreview from "@/components/ResumePreview";
 import { fetchGitHubUserData } from "@/utils/github";
 import MakePdf from "@/components/MakePdf";
-import EditPdf from '@/components/EditPdf';
+import ProjectManager from '@/components/ProjectManager';
 import Link from 'next/link';
 
 const Home: React.FC = () => {
   const [resumeData, setResumeData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [username, setUsername] = useState<string>(''); // State for GitHub username
-  const resumeRef = useRef<HTMLDivElement | null>(null); // Ref for the resume preview
+  const [username, setUsername] = useState<string>('');
+  const [isEditingProjects, setIsEditingProjects] = useState(false);
+  const resumeRef = useRef<HTMLDivElement | null>(null);
 
   const handleGenerateResume = async () => {
     setLoading(true);
-    setError(null); // Reset error state before fetching
+    setError(null);
     try {
       const data = await fetchGitHubUserData(username);
       setResumeData(data);
@@ -27,45 +43,101 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleSaveEdit = (updatedData: any) => {
-    setResumeData(updatedData);
+  const handleUpdateProjects = (updatedProjects: any[]) => {
+    setResumeData({
+      ...resumeData,
+      projects: updatedProjects
+    });
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-extrabold text-blue-600">Resume Generator Using GitHub</h1>
-
-        <input
-          type="text"
-          placeholder="Enter GitHub Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="mt-4 p-2 border border-gray-300 rounded"
-        />
-
-        <Button
-          onClick={handleGenerateResume}
-          className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition mt-4"
-          disabled={loading || !username} // Disable button if loading or username is empty
-        >
-          {loading ? 'Generating...' : 'Generate Resume'}
-        </Button>
-
-        <Link href="/dashboard">
-          <Button className="mt-4 bg-purple-500 text-white">
-            View Statistics
-          </Button>
-        </Link>
-
-        {error && <div className="text-red-500 mt-2">{error}</div>} {/* Display error message */}
-        {resumeData && (
-          <div ref={resumeRef}>
-            <ResumePreview {...resumeData} />
-            <div className="flex justify-center space-x-4">
-              <MakePdf resumeRef={resumeRef} />
-              <EditPdf resumeData={resumeData} onSave={handleSaveEdit} />
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-red-900">
+      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+        <Card className="mb-8 bg-black/60 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-4xl font-extrabold text-center text-white">
+              GitHub Resume Generator
+            </CardTitle>
+            <CardDescription className="text-center text-lg text-gray-300">
+              Create a professional resume from your GitHub profile
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
+              <div className="relative flex-grow">
+                <Input
+                  type="text"
+                  placeholder="Enter GitHub Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
+                />
+                <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              </div>
+              <Button
+                onClick={handleGenerateResume}
+                disabled={loading || !username}
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+              >
+                {loading ? 'Generating...' : 'Generate Resume'}
+              </Button>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="mt-4 max-w-2xl mx-auto bg-red-900/50 border-red-800">
+                <ExclamationTriangleIcon className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {resumeData && (
+          <div className="space-y-6">
+            <div ref={resumeRef} className="bg-white rounded-lg shadow-xl p-8">
+              <ResumePreview {...resumeData} />
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button
+                onClick={() => setIsEditingProjects(true)}
+                variant="outline"
+                className="flex items-center bg-gray-900 text-white border-gray-700 hover:bg-gray-800"
+              >
+                <PenLine className="mr-2 h-4 w-4" />
+                Edit Projects
+              </Button>
+
+              <MakePdf resumeRef={resumeRef}>
+                {(onDownload) => (
+                  <Button
+                    onClick={onDownload}
+                    className="flex items-center bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                )}
+              </MakePdf>
+
+              <Link href="/dashboard">
+                <Button
+                  variant="outline"
+                  className="flex items-center bg-gray-900 text-white border-gray-700 hover:bg-gray-800"
+                >
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  View Statistics
+                </Button>
+              </Link>
+            </div>
+
+            <ProjectManager
+              projects={resumeData.projects}
+              onUpdate={handleUpdateProjects}
+              isOpen={isEditingProjects}
+              onClose={() => setIsEditingProjects(false)}
+            />
           </div>
         )}
       </div>
