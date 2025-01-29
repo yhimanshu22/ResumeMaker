@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { generateProjectDescription } from '@/lib/gemini';
 
 interface Project {
     title: string;
@@ -43,6 +44,7 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ projects, onUpdate, isO
         link: '',
         type: ''
     });
+    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
@@ -95,6 +97,24 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ projects, onUpdate, isO
         onUpdate(updatedProjects);
     };
 
+    const generateDescription = async () => {
+        if (!projectForm.title) return;
+
+        setIsGeneratingDescription(true);
+        try {
+            const description = await generateProjectDescription(
+                projectForm.title,
+                projectForm.type,
+                projectForm.description
+            );
+            handleInputChange('description', description);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setIsGeneratingDescription(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -135,12 +155,34 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ projects, onUpdate, isO
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="description">Description*</Label>
+                                    <div className="flex justify-between items-center">
+                                        <Label htmlFor="description">Description*</Label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={generateDescription}
+                                            disabled={isGeneratingDescription || !projectForm.title}
+                                            className="h-8"
+                                        >
+                                            {isGeneratingDescription ? (
+                                                <>
+                                                    <span className="animate-spin mr-2">⚡</span>
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="mr-2">✨</span>
+                                                    Generate Description
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                     <Textarea
                                         id="description"
                                         value={projectForm.description}
                                         onChange={(e) => handleInputChange('description', e.target.value)}
-                                        placeholder="Enter project description"
+                                        placeholder="Enter project description or generate one"
                                         rows={3}
                                     />
                                 </div>
