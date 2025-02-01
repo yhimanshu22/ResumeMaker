@@ -180,7 +180,8 @@ const Dashboard: React.FC = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="aspect-square">
-                                    <Pie data={getChartData()?.languageData} options={chartOptions} />
+                                    <Pie data={getChartData()?.languageData ?? { labels: [], datasets: [] }} options={chartOptions} />
+
                                 </div>
                             </CardContent>
                         </Card>
@@ -191,7 +192,8 @@ const Dashboard: React.FC = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="aspect-square">
-                                    <Pie data={getChartData()?.repoTypeData} options={chartOptions} />
+                                    <Pie data={getChartData()?.languageData ?? { labels: [], datasets: [] }} options={chartOptions} />
+
                                 </div>
                             </CardContent>
                         </Card>
