@@ -29,12 +29,15 @@ ChartJS.register(
     LinearScale
 );
 
+
 const Dashboard: React.FC = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [username, setUsername] = useState('');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processLanguages = (projects: any[], skills: string[]) => {
         const langs: { [key: string]: number } = {};
         skills.forEach(skill => {
@@ -45,6 +48,7 @@ const Dashboard: React.FC = () => {
         return langs;
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processRepoTypes = (projects: any[]) => {
         return {
             personal: projects.filter(p => !p.type.includes('Forked')).length,

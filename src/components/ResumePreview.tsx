@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ResumeTemplate from './ResumeTemplate';
 import TemplateSelector from './TemplateSelector';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResumePreview: React.FC<any> = (data) => {
     const [selectedTemplate, setSelectedTemplate] = useState<'modern' | 'classic' | 'minimal'>('modern');
 

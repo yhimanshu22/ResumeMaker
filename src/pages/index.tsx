@@ -22,6 +22,7 @@ import ProjectManager from '@/components/ProjectManager';
 import Link from 'next/link';
 
 const Home: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [resumeData, setResumeData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,7 @@ const Home: React.FC = () => {
       setLoading(false);
     }
   };
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUpdateProjects = (updatedProjects: any[]) => {
     setResumeData({
       ...resumeData,
