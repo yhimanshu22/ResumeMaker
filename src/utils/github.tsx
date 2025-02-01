@@ -56,8 +56,8 @@ export const fetchGitHubUserData = async (username: string) => {
 
         const skills = ['Java', 'Python', 'JavaScript', 'TypeScript', 'SQL', 'Node.js', 'ReactJS', 'Next.js', 'Tailwind CSS'];
         const courses = ['Applied Probability And Statistics', 'Machine Learning Specialization', 'Web Development'];
-        const positions = [];
-        const socialImpact = [];
+        const positions = ["Web Developer at GIVA"];
+        const socialImpact = ["Maths teacher at Prayas IITK"];
 
         return {
             name: userData.name || userData.login,
