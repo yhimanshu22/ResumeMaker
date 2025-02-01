@@ -110,7 +110,8 @@ const Home: React.FC = () => {
                 Edit Projects
               </Button>
 
-              <MakePdf resumeRef={resumeRef}>
+              <MakePdf resumeRef={resumeRef as React.RefObject<HTMLDivElement>}>
+
                 {(onDownload) => (
                   <Button
                     onClick={onDownload}
