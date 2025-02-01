@@ -2,12 +2,21 @@ import axios from 'axios';
 
 const GITHUB_API_URL = 'https://api.github.com/users';
 
+// Define the structure of a single repo
+interface Repo {
+    id: number;
+    name: string;
+    description: string | null;
+    html_url: string;
+    fork: boolean;
+}
+
 export const fetchGitHubUserData = async (username: string) => {
     try {
         const userResponse = await axios.get(`${GITHUB_API_URL}/${username}`);
 
         // Fetch all repositories with pagination
-        let allRepos = [];
+        let allRepos: Repo[] = [];  // Explicitly typed as Repo[]
         let page = 1;
         let hasMore = true;
 
@@ -15,7 +24,7 @@ export const fetchGitHubUserData = async (username: string) => {
             const reposResponse = await axios.get(
                 `${GITHUB_API_URL}/${username}/repos?per_page=100&page=${page}`
             );
-            const repos = reposResponse.data;
+            const repos: Repo[] = reposResponse.data;  // Type the response data as an array of Repo objects
             allRepos = [...allRepos, ...repos];
 
             // Check if there are more pages
@@ -69,4 +78,4 @@ export const fetchGitHubUserData = async (username: string) => {
         console.error('Error fetching GitHub data:', error);
         throw new Error('Failed to fetch GitHub data');
     }
-}; 
+};
