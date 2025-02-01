@@ -1,13 +1,34 @@
 import { useState } from "react";
 
+// Define the expected structure of the API response
+interface Repo {
+    id: number;
+    name: string;
+    stargazers_count: number;
+}
+
+interface UserData {
+    user: {
+        name: string;
+        login: string;
+        bio: string;
+        public_repos: number;
+    };
+    repos: Repo[];
+}
+
 export default function Resume() {
-    const [username, setUsername] = useState("");
-    const [data, setData] = useState(null);
+    const [username, setUsername] = useState<string>("");
+    const [data, setData] = useState<UserData | null>(null);
 
     const fetchResume = async () => {
-        const res = await fetch(`/api/github?username=${username}`);
-        const result = await res.json();
-        setData(result);
+        try {
+            const res = await fetch(`/api/github?username=${username}`);
+            const result: UserData = await res.json();
+            setData(result);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
     };
 
     return (
@@ -24,7 +45,7 @@ export default function Resume() {
                 Generate Resume
             </button>
 
-            {data && (
+            {data?.user && (
                 <div className="mt-6 p-4 border rounded">
                     <h2 className="text-xl">{data.user.name} (@{data.user.login})</h2>
                     <p>{data.user.bio}</p>
